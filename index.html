@@ -173,13 +173,16 @@
           snapToZoom: false
         },
         popup: {
-          dockEnabled: true,
-          dockOptions: {
-            position: "bottom-center",
-            breakpoint: true
-          }
-        }
-      });
+  dockEnabled: true,
+  dockOptions: {
+    buttonEnabled: false,
+    breakpoint: {
+      width: 99999,
+      height: 99999
+    },
+    position: "bottom-center"
+  }
+}
 
       const userLayer = new GraphicsLayer({ title: "Minha localização" });
       webmap.add(userLayer);
