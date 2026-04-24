@@ -3,9 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, width=device-width" />
-  <title>FLORESTA URBANA UNICAMP</title>
+  <title>Floresta Urbana Unicamp — WebMap Público</title>
 
-  <!-- ArcGIS Maps SDK for JavaScript -->
   <link rel="stylesheet" href="https://js.arcgis.com/4.34/esri/themes/light/main.css" />
   <script src="https://js.arcgis.com/4.34/"></script>
 
@@ -25,9 +24,6 @@
       left: 12px;
       right: 12px;
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
       pointer-events: none;
     }
 
@@ -36,7 +32,7 @@
       background: rgba(255, 255, 255, 0.94);
       border-left: 6px solid #9b2222;
       border-radius: 12px;
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.18);
       padding: 10px 14px;
       pointer-events: auto;
     }
@@ -61,9 +57,9 @@
       left: 12px;
       bottom: 20px;
       max-width: 420px;
-      background: rgba(255, 255, 255, 0.95);
+      background: rgba(255,255,255,0.95);
       border-radius: 12px;
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.20);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.20);
       padding: 12px 14px;
       font-size: 13px;
       color: #263238;
@@ -85,16 +81,36 @@
       width: 100%;
     }
 
-    .btn:active { transform: scale(0.99); }
+    .btn:active {
+      transform: scale(0.99);
+    }
 
     @media (max-width: 640px) {
-      .brand h1 { font-size: 15px; }
-      .brand p { display: none; }
+      .topbar {
+        top: 8px;
+        left: 8px;
+        right: 8px;
+      }
+
+      .brand {
+        padding: 8px 10px;
+        max-width: calc(100vw - 24px);
+      }
+
+      .brand h1 {
+        font-size: 14px;
+      }
+
+      .brand p {
+        display: none;
+      }
+
       .locationPanel {
         left: 10px;
         right: 10px;
         bottom: 14px;
         max-width: none;
+        font-size: 12px;
       }
     }
   </style>
@@ -106,13 +122,13 @@
   <div class="topbar">
     <div class="brand">
       <h1>Floresta Urbana Unicamp</h1>
-      <p>Clique no ponto da árvore, depois clique no botão "Abrir ficha botânica" para obter informações sobre a árvore.</p>
+      <p>Clique no ponto da árvore e selecione “Abrir ficha botânica” para consultar as informações.</p>
     </div>
   </div>
 
   <div class="locationPanel" id="locationPanel">
     <strong>Status:</strong> carregando o mapa...<br />
-    Ao abrir pelo celular, permita o acesso à localização quando o navegador solicitar. O recurso funciona melhor em endereço HTTPS.
+    O navegador solicitará permissão para usar sua localização.
     <button class="btn" id="locateAgainBtn" type="button">Centralizar na minha localização</button>
   </div>
 
@@ -128,35 +144,25 @@
       "esri/widgets/Search"
     ], function(WebMap, MapView, Graphic, GraphicsLayer, Home, ScaleBar, Compass, Search) {
 
-      /**************************************************************
-       * CONFIGURAÇÕES PRINCIPAIS
-       **************************************************************/
       const CONFIG = {
-        // 1) Substitua pelo ID do seu WebMap no ArcGIS Online:
         webmapId: "410e7028fc354f848844999a10ddc87e",
 
-        // 2) Escala inicial ao encontrar o usuário:
-        // Para uso em campo, recomenda-se 1:500 ou 1:1000.
-        // 1:200 é possível, mas pode ficar próximo demais se o GPS tiver erro.
-        escalaLocalizacao: 200,
+        // Recomendo 500 ou 1000 para uso público em campo.
+        escalaLocalizacao: 500,
 
-        // 3) Se true, acompanha a posição do usuário em deslocamento.
-        // Se false, centraliza apenas uma vez ao abrir.
+        // Para uso público, false é melhor.
+        // Assim o usuário consegue navegar no mapa sem ele recentralizar sozinho.
         acompanharUsuario: false,
 
-        // 4) Centro reserva caso o usuário negue a localização.
-        // Exemplo aproximado: campus Unicamp / Barão Geraldo.
         fallbackCenter: [-47.0659, -22.8170],
         fallbackScale: 8000,
 
-        // 5) Precisão máxima solicitada ao GPS.
         enableHighAccuracy: true,
         timeout: 12000,
         maximumAge: 5000
       };
 
       const panel = document.getElementById("locationPanel");
-      const locateAgainBtn = document.getElementById("locateAgainBtn");
 
       const webmap = new WebMap({
         portalItem: {
@@ -173,26 +179,56 @@
           snapToZoom: false
         },
         popup: {
-  dockEnabled: true,
-  dockOptions: {
-    buttonEnabled: false,
-    breakpoint: {
-      width: 99999,
-      height: 99999
-    },
-    position: "bottom-center"
-  }
-}
+          dockEnabled: true,
+          dockOptions: {
+            buttonEnabled: false,
+            position: "bottom-center",
+            breakpoint: {
+              width: 900,
+              height: 900
+            }
+          }
+        }
+      });
 
-      const userLayer = new GraphicsLayer({ title: "Minha localização" });
+      const userLayer = new GraphicsLayer({
+        title: "Minha localização"
+      });
+
       webmap.add(userLayer);
 
       let watchId = null;
       let firstLocation = true;
 
       function updatePanel(message) {
-        panel.innerHTML = message + '<button class="btn" id="locateAgainBtn" type="button">Centralizar na minha localização</button>';
-        document.getElementById("locateAgainBtn").addEventListener("click", locateUserOnce);
+        panel.innerHTML =
+          message +
+          '<button class="btn" id="locateAgainBtn" type="button">Centralizar na minha localização</button>';
+
+        document
+          .getElementById("locateAgainBtn")
+          .addEventListener("click", locateUserOnce);
+      }
+
+      function applyResponsivePopup() {
+        if (window.innerWidth <= 900 || window.innerHeight <= 900) {
+          view.popup.dockEnabled = true;
+          view.popup.dockOptions = {
+            buttonEnabled: false,
+            position: "bottom-center",
+            breakpoint: {
+              width: 900,
+              height: 900
+            }
+          };
+        } else {
+          view.popup.dockEnabled = true;
+          view.popup.dockOptions = {
+            buttonEnabled: true,
+            position: "top-right",
+            breakpoint: false
+          };
+        }
       }
 
       function drawUserLocation(longitude, latitude, accuracy) {
@@ -201,8 +237,8 @@
         const pointGraphic = new Graphic({
           geometry: {
             type: "point",
-            longitude,
-            latitude
+            longitude: longitude,
+            latitude: latitude
           },
           symbol: {
             type: "simple-marker",
@@ -241,70 +277,44 @@
           duration: firstLocation ? 1200 : 600,
           easing: "ease-in-out"
         }).catch(function(error) {
-          if (error.name !== "AbortError") console.error(error);
+          if (error.name !== "AbortError") {
+            console.error(error);
+          }
         });
 
         firstLocation = false;
+
         updatePanel(
           `<strong>Status:</strong> localização ativada.<br>` +
-          `Precisão estimada do GPS: <strong>${Math.round(accuracy || 0)} m</strong>.<br>` +
-          `Escala aplicada: <strong>1:${CONFIG.escalaLocalizacao}</strong>.<br>`
+          `Precisão estimada: <strong>${Math.round(accuracy || 0)} m</strong>.<br>` +
+          `Escala aplicada: <strong>1:${CONFIG.escalaLocalizacao}</strong>.`
         );
       }
 
       function locationError(error) {
         let msg = "Não foi possível obter a localização.";
-        let orientacao = "";
 
         if (error.code === error.PERMISSION_DENIED) {
-          msg = "A localização foi bloqueada pelo navegador ou negada pelo usuário.";
-          orientacao =
-            "<br><br><strong>Como corrigir:</strong><br>" +
-            "1. Toque no cadeado ao lado do endereço do site e permita <strong>Localização</strong>.<br>" +
-            "2. No Android/Chrome: Configurações > Apps > Chrome > Permissões > Localização > Permitir.<br>" +
-            "3. No iPhone/Safari: Ajustes > Privacidade e Segurança > Serviços de Localização > Safari Sites > Permitir.<br>" +
-            "4. Depois, feche e abra novamente o navegador, ou toque no botão abaixo.";
+          msg = "Localização negada pelo usuário. Ative a permissão do navegador.";
         } else if (error.code === error.POSITION_UNAVAILABLE) {
-          msg = "Localização indisponível no momento.";
-          orientacao =
-            "<br><br>Verifique se o GPS/localização do aparelho está ligado, se há sinal adequado e se o navegador tem permissão para usar a localização.";
+          msg = "Localização indisponível. Verifique GPS, sinal e permissões.";
         } else if (error.code === error.TIMEOUT) {
-          msg = "Tempo esgotado ao tentar obter a localização.";
-          orientacao =
-            "<br><br>Tente novamente em área aberta ou aguarde alguns segundos para o GPS obter melhor sinal.";
+          msg = "Tempo esgotado ao tentar obter a localização. Tente novamente.";
         }
 
         updatePanel(
           `<strong>Status:</strong> ${msg}<br>` +
-          `O mapa foi aberto no enquadramento geral configurado.` +
-          orientacao
+          `O mapa foi aberto no enquadramento geral configurado.`
         );
       }
 
       function locateUserOnce() {
         if (!navigator.geolocation) {
-          updatePanel(
-            "<strong>Status:</strong> este navegador não oferece suporte à geolocalização.<br>" +
-            "Use Chrome, Edge, Safari ou Firefox atualizado."
-          );
+          updatePanel("<strong>Status:</strong> este navegador não suporta geolocalização.");
           return;
         }
 
-        // Por regra de segurança dos navegadores modernos, a geolocalização só funciona em HTTPS
-        // ou em localhost. Se o arquivo for aberto como file:// ou http:// comum, o GPS pode ser bloqueado.
-        if (!window.isSecureContext) {
-          updatePanel(
-            "<strong>Status:</strong> a geolocalização exige conexão segura HTTPS.<br>" +
-            "Publique este arquivo em um endereço <strong>https://</strong>, como ArcGIS Online, GitHub Pages ou servidor institucional com certificado SSL.<br><br>" +
-            "Evite abrir o arquivo diretamente pela pasta Downloads, WhatsApp ou caminho <strong>file:///</strong>."
-          );
-          return;
-        }
-
-        updatePanel(
-          "<strong>Status:</strong> solicitando localização do dispositivo...<br>" +
-          "Quando o navegador perguntar, toque em <strong>Permitir</strong>."
-        );
+        updatePanel("<strong>Status:</strong> solicitando localização do dispositivo...");
 
         navigator.geolocation.getCurrentPosition(
           goToUser,
@@ -318,9 +328,14 @@
       }
 
       function startTracking() {
-        if (!navigator.geolocation) return;
+        if (!navigator.geolocation) {
+          updatePanel("<strong>Status:</strong> este navegador não suporta geolocalização.");
+          return;
+        }
 
-        if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+        if (watchId !== null) {
+          navigator.geolocation.clearWatch(watchId);
+        }
 
         watchId = navigator.geolocation.watchPosition(
           goToUser,
@@ -334,10 +349,17 @@
       }
 
       view.when(function() {
-        view.ui.add(new Home({ view }), "top-left");
-        view.ui.add(new Search({ view }), "top-right");
-        view.ui.add(new Compass({ view }), "top-left");
-        view.ui.add(new ScaleBar({ view, unit: "metric" }), "bottom-left");
+        view.ui.add(new Home({ view: view }), "top-left");
+        view.ui.add(new Search({ view: view }), "top-right");
+        view.ui.add(new Compass({ view: view }), "top-left");
+        view.ui.add(new ScaleBar({ view: view, unit: "metric" }), "bottom-left");
+
+        applyResponsivePopup();
+
+        window.addEventListener("resize", applyResponsivePopup);
+        window.addEventListener("orientationchange", function() {
+          setTimeout(applyResponsivePopup, 400);
+        });
 
         updatePanel("<strong>Status:</strong> mapa carregado. Solicitando localização...");
 
@@ -346,12 +368,17 @@
         } else {
           locateUserOnce();
         }
+
       }).catch(function(error) {
-        updatePanel("<strong>Status:</strong> erro ao carregar o WebMap. Verifique se o ID está correto e se o item está público.");
+        updatePanel(
+          "<strong>Status:</strong> erro ao carregar o WebMap. Verifique se o ID está correto e se o item está público."
+        );
         console.error(error);
       });
 
-      locateAgainBtn.addEventListener("click", locateUserOnce);
+      document
+        .getElementById("locateAgainBtn")
+        .addEventListener("click", locateUserOnce);
     });
   </script>
 </body>
